@@ -1,0 +1,6 @@
+interface:
+  display_name: "Java Spring Boot 开发规范"
+  short_description: "Java、Spring Boot、MySQL、安全与测试开发规范"
+  default_prompt: "使用 $java-springboot-development 按 Java、Spring Boot、MySQL 与安全规范开发或评审代码并完成测试。"
+policy:
+  allow_implicit_invocation: true

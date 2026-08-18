@@ -1,0 +1,6 @@
+interface:
+  display_name: "交付流水线"
+  short_description: "从技术方案到部署验证的八阶段门禁式完整交付执行流程"
+  default_prompt: "使用 $delivery-pipeline 从技术方案开始完成开发、提交、推送、部署与功能验证。"
+policy:
+  allow_implicit_invocation: true
