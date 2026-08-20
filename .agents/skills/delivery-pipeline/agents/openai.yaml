@@ -1,6 +1,6 @@
 interface:
   display_name: "交付流水线"
-  short_description: "包含分支准备与飞书方案归档的十阶段门禁式交付流程"
-  default_prompt: "使用 $delivery-pipeline 从技术方案、任务分支创建和飞书方案归档开始，完成开发、提交、推送、部署与功能验证。"
+  short_description: "从 main 开发到验证后合并 main 的十一阶段交付流程"
+  default_prompt: "使用 $delivery-pipeline 从 main 创建任务分支，经开发、部署和功能验证后按门禁合并回 main。"
 policy:
   allow_implicit_invocation: true
