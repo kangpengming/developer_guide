@@ -1,6 +1,6 @@
 interface:
   display_name: "交付流水线"
-  short_description: "支持 Commit 与 Push 一次联合确认的完整交付流程"
-  default_prompt: "使用 $delivery-pipeline 从 main 开发并交付；当我连续要求 Commit 和 Push 时只确认一次。"
+  short_description: "支持 Commit 与 Push 连续免确认的完整交付流程"
+  default_prompt: "使用 $delivery-pipeline 从 main 开发并交付；当我连续要求 Commit 和 Push 时无需额外确认。"
 policy:
   allow_implicit_invocation: true
