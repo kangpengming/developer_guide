@@ -1,6 +1,6 @@
 interface:
   display_name: "Java Spring Boot 开发规范"
-  short_description: "Java、Spring Boot、MySQL、安全与测试开发规范"
-  default_prompt: "使用 $java-springboot-development 按 Java、Spring Boot、MySQL 与安全规范开发或评审代码并完成测试。"
+  short_description: "Java 模块化、生产流程复用与测试开发规范"
+  default_prompt: "使用 $java-springboot-development 按大步骤拆分生产模块，并让测试复用同一流程完成开发或评审。"
 policy:
   allow_implicit_invocation: true
