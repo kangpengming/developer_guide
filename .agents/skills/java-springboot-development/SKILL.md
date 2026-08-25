@@ -1,6 +1,6 @@
 ---
 name: java-springboot-development
-description: 指导 Java、Spring Boot 及 MySQL 关联开发的新增、修改、评审、重构和测试，按《阿里巴巴 Java 开发手册》归纳编程、Lombok、异常日志、安全、数据库、模块化、工程与设计规则，并要求测试复用生产流程模块，覆盖现代分层、DTO/Entity 边界、事务和 Maven/Gradle 验证。用户要求开发或评审 Java/Spring Boot 功能、业务流程模块、Lombok 注解、接口、SQL、表结构、Schema 迁移、持久化代码或 JUnit/Mockito 测试时使用。
+description: 指导 Java、Spring Boot 及数据库、对象存储、消息等外部系统关联开发的新增、修改、评审、重构和测试，按《阿里巴巴 Java 开发手册》归纳编程、Lombok、异常日志、安全、数据库、模块化、高内聚低耦合、语义数据对象、纯计算封装、外部 I/O 与转换分离、工程与设计规则，并要求测试复用生产流程模块。用户要求开发或评审 Java/Spring Boot 功能、业务流程、数据处理、外部系统适配、接口、SQL、Schema 迁移、持久化代码或 JUnit/Mockito 测试时使用。
 ---
 
 # Java Spring Boot 开发规范
@@ -12,12 +12,12 @@ description: 指导 Java、Spring Boot 及 MySQL 关联开发的新增、修改�
 1. 确认仓库、分支、工作区状态、Java 版本、Spring Boot 版本、构建系统、MySQL 等关联中间件及已有实现。
 2. 根据改动内容读取对应参考：
    - Java 命名、包、可见性、Lombok、异常、日志或依赖：读取 [Java 规范](references/java-guidelines.md)。
-   - Spring Boot API、分层、模型、校验、事务或配置：读取 [Spring Boot 规范](references/spring-boot-guidelines.md)。
+   - Spring Boot API、分层、语义数据对象、外部适配器与转换 Service、校验、事务或配置：读取 [Spring Boot 规范](references/spring-boot-guidelines.md)。
    - 测试设计、JUnit 5、Mockito 或构建验证：读取 [测试与构建规范](references/testing-and-build.md)。
    - MySQL 表结构、索引、SQL、ORM、事务或 Schema 迁移：读取 [MySQL 规范](references/mysql-guidelines.md)。
    - 鉴权、输入输出、敏感数据、上传、重放或其他安全问题：读取 [安全规范](references/security-guidelines.md)。
-   - 错误码、依赖治理、远程调用、架构或设计评审：读取 [工程与设计规范](references/engineering-and-design.md)。
-3. 沿用项目结构实现最小必要改动，按业务流程的大步骤建立职责明确的生产模块并组合流程，避免无关重构和格式化。
+   - 错误码、依赖治理、纯计算封装、远程调用、架构或高内聚低耦合设计评审：读取 [工程与设计规范](references/engineering-and-design.md)。
+3. 沿用项目结构实现最小必要改动，按业务流程的大步骤建立职责明确的生产模块，以类型安全的数据对象传递上下文，并分离外部 I/O、解析、算法和流程编排，避免无关重构和格式化。
 4. 为行为变更补充正常、边界和异常路径测试；测试直接调用生产流程模块，通过替换外部依赖保持隔离，不在测试目录重写业务流程。
 5. 自动选择构建命令并先运行相关测试，再运行完整检查。记录命令、退出状态和关键结果。
 6. 汇总修改文件、设计取舍、测试证据和剩余风险。任何测试失败时停止后续提交、推送或部署。

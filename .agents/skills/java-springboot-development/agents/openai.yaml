@@ -1,6 +1,6 @@
 interface:
   display_name: "Java Spring Boot 开发规范"
-  short_description: "Java 模块化、生产流程复用与测试开发规范"
-  default_prompt: "使用 $java-springboot-development 按大步骤拆分生产模块，并让测试复用同一流程完成开发或评审。"
+  short_description: "高内聚数据对象、纯计算与外部适配规范"
+  default_prompt: "使用 $java-springboot-development 按高内聚低耦合原则拆分流程，以语义对象传递数据，并分离外部 I/O、数据转换和纯计算。"
 policy:
   allow_implicit_invocation: true
