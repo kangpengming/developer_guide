@@ -50,6 +50,7 @@ description: 以 delivery-pipeline 为唯一主状态机，编排 Codex 与 Anti
 
 - 阶段定义、顺序、证据、停止条件和确认门禁完全继承 `$delivery-pipeline`，本 Skill 不提供替代规则。
 - Codex 收集证据、展示计划并取得原流水线要求的确认；Antigravity 只执行已经取得授权且范围未变化的 Git、部署、功能验证和合并命令。
+- Antigravity 可以按参考中的受控规则使用 `--dangerously-skip-permissions` 执行已授权命令；该参数只解决 headless 权限交互，不构成新增授权，也不得扩大已确认范围。
 - Commit 后紧接 Push 时沿用原流水线的一次确认规则；部署、生产部署和合并 `main` 仍分别取得原规则要求的独立确认。
 - 远端变化、冲突、允许范围变化、验证失败或授权失效时立即停止，不得让 Antigravity自行扩大操作。
 
