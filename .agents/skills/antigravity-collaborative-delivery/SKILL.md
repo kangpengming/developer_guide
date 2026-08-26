@@ -1,6 +1,6 @@
 ---
 name: antigravity-collaborative-delivery
-description: 以 delivery-pipeline 为唯一主状态机，编排 Codex 与 Antigravity CLI 完成架构设计、方案审核、逐模块生产代码补充与 CR、模块测试及已授权交付。完整功能开发默认使用；用户明确要求 Antigravity 协作、架构设计、UML、分块开发或让 Antigravity 执行测试、Git、部署和验收时使用。简单问答、只读查询、纯说明或无需开发交付的局部任务不触发。
+description: 以 delivery-pipeline 为唯一主状态机，编排 Codex 与 Antigravity CLI 完成架构设计、方案审核、逐模块生产代码补充与 CR、代码查看、模块测试及自动交付。完整功能开发默认使用；生产代码完成后只让用户查看并确认一次，随后由 Antigravity 自动执行测试、Git、部署、验收和合并 main。用户明确要求 Antigravity 协作、架构设计、UML、分块开发或自动交付时使用；简单问答、只读查询或无需开发交付的局部任务不触发。
 ---
 
 # Antigravity 协作交付
@@ -39,6 +39,7 @@ description: 以 delivery-pipeline 为唯一主状态机，编排 Codex 与 Anti
 - 按方案中的模块顺序，每次只把一个模块及其允许文件交给 Antigravity；每个模块新建独立 conversation，针对该模块的 CR 意见继续使用同一 conversation。
 - Antigravity 补充一块生产代码后，Codex 检查职责边界、契约、依赖方向、异常与安全、代码规范、越界改动和与方案的一致性。未通过时给出具体意见并要求在同一 conversation 修改，最多三轮。
 - 当前模块 CR 通过前不得交付下一模块。三轮仍未通过时停止并报告差异与恢复条件；Antigravity 修改允许范围外文件时立即停止，保留 diff 作为证据，不继续调用。
+- 全部生产模块完成并通过 Codex CR 后，Codex 按 `$delivery-pipeline` 展示完整代码、CR 结果、测试和后续交付计划，请用户查看并取得唯一一次确认。确认前不得进入单元测试；后续生产代码变化时必须重新进入本门禁。
 
 ### 单元测试
 
@@ -46,13 +47,12 @@ description: 以 delivery-pipeline 为唯一主状态机，编排 Codex 与 Anti
 - Codex 不做测试代码逐行 CR，但必须核验正常、边界、异常场景是否覆盖，并实际运行相关测试；完成全部模块后仍执行语言 Skill 和原流水线要求的完整检查。
 - 仅测试代码有问题时，在该模块 conversation 中交回 Antigravity 修改。若修复触及生产代码，该模块必须重新进入生产代码 CR，CR 通过后重新运行测试。
 
-### Commit 至合并 main
+### 代码确认后的自动交付
 
-- 阶段定义、顺序、证据、停止条件和确认门禁完全继承 `$delivery-pipeline`，本 Skill 不提供替代规则。
-- Codex 收集证据、展示计划并取得原流水线要求的确认；Antigravity 只执行已经取得授权且范围未变化的 Git、部署、功能验证和合并命令。
-- Antigravity 可以按参考中的受控规则使用 `--dangerously-skip-permissions` 执行已授权命令；该参数只解决 headless 权限交互，不构成新增授权，也不得扩大已确认范围。
-- Commit 后紧接 Push 时沿用原流水线的一次确认规则；部署、生产部署和合并 `main` 仍分别取得原规则要求的独立确认。
-- 远端变化、冲突、允许范围变化、验证失败或授权失效时立即停止，不得让 Antigravity自行扩大操作。
+- 阶段定义、顺序、证据和停止条件完全继承 `$delivery-pipeline`，本 Skill 不提供替代规则。唯一人工确认是生产代码完成后的代码查看。
+- 用户确认代码后，Antigravity 按已展示计划自动执行测试、Commit、远程 `main` 合并、Push、部署、功能验证和合并 `main`；Codex 收集与核验每阶段证据，不再逐阶段请求确认。
+- 所有 Antigravity 调用都可以按参考加入 `--dangerously-skip-permissions`，包括方案审核、飞书归档、生产模块补充、测试和自动交付；该参数只跳过 Antigravity 自身权限交互，不构成新增流水线授权，也不得扩大当前阶段的允许范围。
+- 生产部署和合并 `main` 也不再单独确认。远端变化、冲突、生产代码或允许范围变化、验证失败、依据缺失或授权失效时立即停止，不得让 Antigravity 自行扩大操作；生产代码变化时回到代码查看门禁。
 
 ## 完成证据
 

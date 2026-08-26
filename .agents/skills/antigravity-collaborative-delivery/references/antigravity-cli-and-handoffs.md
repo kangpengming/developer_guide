@@ -5,7 +5,7 @@
 - 固定使用 `/home/rsp/.local/bin/antigravity`；调用前先检查版本和认证状态，不猜测远程主机、凭据或替代安装位置。
 - 方案审核使用 `--mode plan --output-format json`。
 - 飞书技术方案归档、生产模块补充、测试和已授权交付使用 `--mode accept-edits --output-format json`。
-- 允许使用 `--dangerously-skip-permissions`，但仅限 Codex 已展示精确操作范围且用户已按原流水线明确授权的外部写入或交付命令；方案审核、未授权操作和范围不明确的调用不得使用。该参数只用于避免 headless 权限提示阻塞，不授予任何额外 Git、飞书、文件、部署或环境操作。共享工作区内所有调用必须串行；上一次调用的状态与 diff 未核对完，不得开始下一次。
+- 所有 Antigravity 调用都允许加入 `--dangerously-skip-permissions`，包括 Plan 审核、飞书归档、生产模块补充、CR 修改、测试和交付命令。该参数只跳过 Antigravity 自身的权限确认，不改变 `$delivery-pipeline` 的阶段授权、允许文件、外部操作范围和停止条件，也不自动授权额外 Git、飞书、文件、部署或环境操作。共享工作区内所有调用必须串行；上一次调用的状态与 diff 未核对完，不得开始下一次。
 - 每次调用前记录当前分支、HEAD、`git status`、允许修改文件和预期命令；调用后记录实际模型、conversation ID、退出状态、结构化结果、`git status` 和限定范围 diff。
 - 修改意见通过 `--conversation <conversation_id>` 继续原 conversation。方案审核复用方案 conversation；每个生产模块创建一个独立 conversation，其实现、CR 修改和测试修改均在该 conversation 内连续进行。
 
@@ -30,13 +30,13 @@
 方案审核：
 
 ```text
-/home/rsp/.local/bin/antigravity --model <review-model> --mode plan --output-format json --print='<方案审核交接>'
+/home/rsp/.local/bin/antigravity --model <review-model> --mode plan --output-format json [--dangerously-skip-permissions] --print='<方案审核交接>'
 ```
 
 方案复审：
 
 ```text
-/home/rsp/.local/bin/antigravity --conversation <conversation-id> --model <same-model> --mode plan --output-format json --print='<裁决与修订交接>'
+/home/rsp/.local/bin/antigravity --conversation <conversation-id> --model <same-model> --mode plan --output-format json [--dangerously-skip-permissions] --print='<裁决与修订交接>'
 ```
 
 飞书归档、模块补充、测试或已授权交付：
@@ -90,4 +90,4 @@ CR 修改交接包含缺陷编号、文件与位置、预期行为和允许范�
 
 ## 已授权交付交接
 
-只传递 Codex 已展示并获得用户确认的精确阶段和命令，同时包含分支、HEAD、upstream、远端状态、允许变更、验证结果及停止条件。只有 headless 权限提示会阻止这项已授权命令时，才加入 `--dangerously-skip-permissions`；加入前后允许命令必须完全相同。Antigravity 不得自行选择 merge/rebase、扩大暂存范围、改变提交信息、force push、猜测部署环境或绕过确认。执行后返回命令、退出码、关键输出和状态；任一前置状态变化立即停止。
+只传递代码查看阶段已展示并获得用户确认的后续计划和精确命令，同时包含分支、HEAD、upstream、远端状态、允许变更、验证结果及停止条件。确认后各阶段自动执行，不再请求 Commit、Push、部署、生产部署或合并 `main` 确认。调用可以直接加入 `--dangerously-skip-permissions`，但加入前后允许命令和操作范围必须完全相同。Antigravity 不得自行选择未列明的 merge/rebase、扩大暂存范围、改变提交信息、force push、猜测部署环境或绕过停止条件。执行后返回命令、退出码、关键输出和状态；任一前置状态变化立即停止，生产代码变化时返回代码查看门禁。
