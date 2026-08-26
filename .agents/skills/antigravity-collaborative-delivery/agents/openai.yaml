@@ -1,0 +1,6 @@
+interface:
+  display_name: "Antigravity 协作交付"
+  short_description: "Codex 架构主导、Antigravity 分块协作的交付编排"
+  default_prompt: "使用 $antigravity-collaborative-delivery 按原交付门禁完成架构设计、分块开发、测试与交付。"
+policy:
+  allow_implicit_invocation: true
