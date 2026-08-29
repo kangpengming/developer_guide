@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -15,6 +16,51 @@ MODELS = {
     "module": ["gemini-3.7-flash-high", "gemini-3.6-flash-high", "claude-opus-4-6-thinking"],
     "execute": ["gemini-3.7-flash-medium", "gemini-3.6-flash-medium", "claude-opus-4-6-thinking"],
 }
+DEFAULT_TIMEOUTS = {"review": "5m", "module": "10m", "execute": "10m"}
+CONVERSATION_KEYS = {"conversation_id", "conversationId", "conversationID"}
+
+
+def parse_cli_json(output: str) -> object | None:
+    """Parse a JSON response without making JSON output mandatory for diagnostics."""
+    try:
+        return json.loads(output)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
+def find_conversation_id(value: object) -> str | None:
+    """Find a conversation identifier in nested CLI JSON."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in CONVERSATION_KEYS and item:
+                return str(item)
+        for item in value.values():
+            found = find_conversation_id(item)
+            if found:
+                return found
+    elif isinstance(value, list):
+        for item in value:
+            found = find_conversation_id(item)
+            if found:
+                return found
+    return None
+
+
+def conversation_id_from(stdout: str, stderr: str) -> str | None:
+    """Extract the ID from structured output, with CLI logs as a fallback."""
+    found = find_conversation_id(parse_cli_json(stdout))
+    if found:
+        return found
+    match = re.search(r"conversation(?:ID| ID|_id)[=\"': ]+([0-9a-f-]{16,})", stderr, re.IGNORECASE)
+    return match.group(1) if match else None
+
+
+def emit(evidence: dict[str, object], output_path: Path | None) -> None:
+    """Print evidence and optionally persist the exact same JSON."""
+    content = json.dumps(evidence, ensure_ascii=False, indent=2)
+    if output_path:
+        output_path.write_text(content + "\n", encoding="utf-8")
+    print(content)
 
 
 def git_state(repo: Path) -> dict[str, object]:
@@ -33,7 +79,10 @@ def git_state(repo: Path) -> dict[str, object]:
 
 def working_fingerprints(repo: Path) -> dict[str, str]:
     result = subprocess.run(
-        ["git", "status", "--porcelain=v1", "-z"], cwd=repo, capture_output=True, check=False
+        ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+        cwd=repo,
+        capture_output=True,
+        check=False,
     )
     fingerprints: dict[str, str] = {}
     entries = [entry for entry in result.stdout.split(b"\0") if entry]
@@ -56,13 +105,20 @@ def working_fingerprints(repo: Path) -> dict[str, str]:
     return fingerprints
 
 
-def prompt_for(stage: str, handoff: dict[str, object]) -> str:
+def prompt_for(stage: str, handoff: dict[str, object], repo: Path) -> str:
     prefix = {
         "review": "只审核，不修改工作区。",
-        "module": "只处理指定单模块和允许文件，不执行交付。",
+        "module": (
+            "必须直接使用文件编辑工具完成指定单模块，不要只返回代码或说明。"
+            "只修改允许文件，完成前核对工作区已产生预期 diff，不执行交付。"
+        ),
         "execute": "只执行已授权范围；状态变化或失败立即停止。",
     }[stage]
-    return prefix + "\n交接 JSON：\n" + json.dumps(handoff, ensure_ascii=False, indent=2)
+    workspace = (
+        f"\n目标仓库是 {repo}。所有相对路径均相对于该目录；"
+        "禁止读写 Antigravity scratch 目录。"
+    )
+    return prefix + workspace + "\n交接 JSON：\n" + json.dumps(handoff, ensure_ascii=False, indent=2)
 
 
 def main() -> int:
@@ -70,11 +126,17 @@ def main() -> int:
     parser.add_argument("--stage", choices=MODELS, required=True)
     parser.add_argument("--handoff", type=Path, required=True)
     parser.add_argument("--repo", type=Path, default=Path.cwd())
-    parser.add_argument("--timeout", default="2m")
+    parser.add_argument("--timeout")
+    parser.add_argument("--evidence-out", type=Path)
     args = parser.parse_args()
+    repo = args.repo.resolve()
+    if args.evidence_out and args.evidence_out.resolve().is_relative_to(repo):
+        parser.error("--evidence-out must be outside --repo")
     handoff = json.loads(args.handoff.read_text(encoding="utf-8"))
-    before = git_state(args.repo)
-    before_files = working_fingerprints(args.repo)
+    timeout = args.timeout or str(handoff.get("timeout") or DEFAULT_TIMEOUTS[args.stage])
+    require_changes = bool(handoff.get("require_changes", args.stage == "module"))
+    before = git_state(repo)
+    before_files = working_fingerprints(repo)
     allowed_files = {str(path) for path in handoff.get("allowed_files", [])}
     attempts: list[dict[str, object]] = []
     for model in MODELS[args.stage]:
@@ -84,37 +146,49 @@ def main() -> int:
             "--mode", "plan" if args.stage == "review" else "accept-edits",
             "--output-format", "json",
             "--dangerously-skip-permissions",
-            "--print-timeout", args.timeout,
+            "--print-timeout", timeout,
+            "--add-dir", str(repo),
         ]
         conversation_id = handoff.get("conversation_id")
         if conversation_id:
             command.extend(["--conversation", str(conversation_id)])
-        command.append("--print=" + prompt_for(args.stage, handoff))
-        result = subprocess.run(command, cwd=args.repo, text=True, capture_output=True, check=False)
+        else:
+            command.append("--new-project")
+        command.append("--print=" + prompt_for(args.stage, handoff, repo))
+        result = subprocess.run(command, cwd=repo, text=True, capture_output=True, check=False)
+        parsed_stdout = parse_cli_json(result.stdout)
+        conversation_id = conversation_id_from(result.stdout, result.stderr)
         attempt = {
             "model": model,
             "exit_code": result.returncode,
-            "stdout": result.stdout.strip(),
-            "stderr": result.stderr.strip(),
+            "conversation_id": conversation_id,
+            "stdout_chars": len(result.stdout),
+            "stderr": result.stderr.strip()[-4000:],
         }
+        if args.stage == "review":
+            attempt["response"] = parsed_stdout if parsed_stdout is not None else result.stdout.strip()
+        elif result.stdout:
+            attempt["response_preview"] = result.stdout.strip()[-2000:]
         attempts.append(attempt)
-        current_files = working_fingerprints(args.repo)
+        current_files = working_fingerprints(repo)
         changed_during_attempt = {
             path for path in set(before_files) | set(current_files)
             if before_files.get(path) != current_files.get(path)
         }
         if result.returncode != 0 and (args.stage == "execute" or changed_during_attempt):
-            print(json.dumps({
+            evidence = {
                 "before": before,
-                "after": git_state(args.repo),
+                "after": git_state(repo),
                 "attempts": attempts,
                 "touched_files": sorted(changed_during_attempt),
                 "stopped_without_fallback": True,
-            }, ensure_ascii=False, indent=2))
+                "timeout": timeout,
+            }
+            emit(evidence, args.evidence_out)
             return 1
         if result.returncode == 0 and (args.stage != "review" or result.stdout.strip()):
-            after = git_state(args.repo)
-            after_files = working_fingerprints(args.repo)
+            after = git_state(repo)
+            after_files = working_fingerprints(repo)
             touched = {
                 path for path in set(before_files) | set(after_files)
                 if before_files.get(path) != after_files.get(path)
@@ -124,12 +198,26 @@ def main() -> int:
                 "before": before,
                 "after": after,
                 "attempts": attempts,
+                "conversation_id": conversation_id,
                 "touched_files": sorted(touched),
                 "unexpected_files": unexpected,
+                "timeout": timeout,
             }
-            print(json.dumps(evidence, ensure_ascii=False, indent=2))
-            return 2 if unexpected else 0
-    print(json.dumps({"before": before, "after": git_state(args.repo), "attempts": attempts}, ensure_ascii=False, indent=2))
+            if unexpected:
+                emit(evidence, args.evidence_out)
+                return 2
+            if require_changes and not touched:
+                evidence["no_expected_changes"] = True
+                emit(evidence, args.evidence_out)
+                return 3
+            emit(evidence, args.evidence_out)
+            return 0
+    emit({
+        "before": before,
+        "after": git_state(repo),
+        "attempts": attempts,
+        "timeout": timeout,
+    }, args.evidence_out)
     return 1
 
 

@@ -1,17 +1,23 @@
 # Antigravity CLI 约定
 
-优先运行：
+先根据已加载 `SKILL.md` 的真实路径得到 `<skill-root>`，再运行：
 
 ```bash
-python3 scripts/run_antigravity.py --stage review|module|execute --handoff handoff.json --repo <repo>
+python3 <skill-root>/scripts/run_antigravity.py --stage review|module|execute --handoff handoff.json --repo <repo> --evidence-out /tmp/antigravity-evidence.json
 ```
 
-脚本固定使用 `/home/rsp/.local/bin/antigravity`、JSON 输出、`--dangerously-skip-permissions`，串行调用并输出统一证据。模型顺序内置：
+仓库内 Skill 的常见路径是 `.agents/skills/antigravity-collaborative-delivery`，但以当前实际加载路径为准；禁止从项目根目录直接调用不存在的 `scripts/run_antigravity.py`。
+证据文件必须位于目标仓库外，避免污染工作区或绕过越界检查。
+
+脚本固定使用 `/home/rsp/.local/bin/antigravity`、JSON 输出和 `--dangerously-skip-permissions`，串行调用并输出统一证据。使用 `--add-dir <repo>` 绑定目标仓库；新 conversation 加 `--new-project`，复审沿用原 conversation 项目；禁止写入默认 scratch 目录。模型顺序：
 
 - review/module：`gemini-3.7-flash-high`、`gemini-3.6-flash-high`、`claude-opus-4-6-thinking`
 - archive/test/delivery：`gemini-3.7-flash-medium`、`gemini-3.6-flash-medium`、`claude-opus-4-6-thinking`
 
 仅模型不可用、超时或进程失败时回退；审核/CR 不通过、测试或业务命令失败不得换模型绕过。
+默认超时：审核 `5m`，单模块开发和交付 `10m`；可用 handoff 顶层 `timeout` 或命令行 `--timeout` 覆盖，命令行优先。
+脚本从 CLI JSON 返回中提取 `conversation_id`，并写入统一证据；后续 CR 修改必须把该 ID 回填到下一份 handoff。
+`module` 默认必须产生允许范围内的文件变更；CLI 返回 0 但无变更仍视为失败，不切换模型绕过。仅当模块已满足交接契约时，才在 handoff 显式设置 `"require_changes": false`。
 
 ## handoff.json
 
@@ -21,7 +27,9 @@ python3 scripts/run_antigravity.py --stage review|module|execute --handoff hando
   "conversation_id": null,
   "allowed_files": ["精确相对路径"],
   "scope": "允许的外部操作或命令",
-  "stop_conditions": ["范围变化即停止"]
+  "stop_conditions": ["范围变化即停止"],
+  "timeout": "10m",
+  "require_changes": true
 }
 ```
 
