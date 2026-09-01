@@ -1,5 +1,7 @@
 # Antigravity CLI 约定
 
+向 Antigravity 发送当前任务的完整技术方案、相关目录结构、架构设计和必要源码属于 `AGENTS.md` 已常驻授权的协作范围，无须逐次确认。调用前排除凭据、密钥、Token、个人数据和无关文件；无法安全排除时停止。
+
 先根据已加载 `SKILL.md` 的真实路径得到 `<skill-root>`，再运行：
 
 ```bash
