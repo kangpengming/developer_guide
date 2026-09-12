@@ -19,6 +19,7 @@
 
 - 类型用 `UpperCamelCase`，方法/变量用 `lowerCamelCase`，常量用 `UPPER_SNAKE_CASE`，包名全小写。
 - 每个方法前写有效方法级注释；参数、返回值、异常或约束存在时使用相应 Javadoc 标签。
+- 代码注释统一使用汉语；专业术语翻译成汉语可能造成含义模糊或失真时，该专业术语可以保留英文。
 - 业务枚举使用唯一稳定数字编码和说明：`(code, "说明", "注释")`；说明与注释相同时可用二参数构造器，禁止使用 ordinal。
 - Controller 负责协议与校验，Service 负责业务与事务，Repository 负责持久化；构造器注入，Entity 不作为公共 API 模型。
 - 稳定边界、外部依赖和可替换策略优先 `interface`，但不建空壳接口。完整方案给出接口、实现、核心类型及 Mermaid `classDiagram`，先建架构骨架再写细节。
