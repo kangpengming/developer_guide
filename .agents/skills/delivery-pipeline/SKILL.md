@@ -17,6 +17,7 @@ description: 从最新 main 的任务分支开始，执行方案、飞书归档�
 - 用户单独要求某个后续阶段时，该请求即为该阶段授权，不重复确认。
 - 从已加载的本 Skill 目录定位脚本；先用 `scripts/delivery_check.py preflight` 获取 Git 证据，Java 可用 `build-plan` 探测命令，不得覆盖仓库文档。
 - 局部 Bug 只读当前改动必需的语言/reference，不加载完整协作编排；范围扩大时再升级流程。
+- Git 网络命令因代理或连通性失败时，允许仅对同一命令清除 `http_proxy`、`https_proxy`、`all_proxy` 及其大写变量，并以 `git -c http.proxy= -c https.proxy=` 绕过 Git HTTP(S) 代理重试一次；不得修改全局配置、改变远端或无限重试。仍失败则记录两次失败摘要并停止。
 
 ## 低 Token 执行
 
