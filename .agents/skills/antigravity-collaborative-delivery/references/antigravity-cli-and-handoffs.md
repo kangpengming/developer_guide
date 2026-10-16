@@ -11,10 +11,10 @@ python3 <skill-root>/scripts/run_antigravity.py --stage review|module|execute --
 仓库内 Skill 的常见路径是 `.agents/skills/antigravity-collaborative-delivery`，但以当前实际加载路径为准；禁止从项目根目录直接调用不存在的 `scripts/run_antigravity.py`。
 证据文件必须位于目标仓库外，避免污染工作区或绕过越界检查。
 
-脚本固定使用 `/home/rsp/.local/bin/antigravity`、JSON 输出和 `--dangerously-skip-permissions`，串行调用并输出统一证据。使用 `--add-dir <repo>` 绑定目标仓库；新 conversation 加 `--new-project`，复审沿用原 conversation 项目；禁止写入默认 scratch 目录。模型顺序：
+脚本固定使用 `/home/rsp/.local/bin/antigravity`、JSON 输出和 `--dangerously-skip-permissions`，串行调用并输出统一证据。使用 `--add-dir <repo>` 绑定目标仓库；新 conversation 加 `--new-project`，复审沿用原 conversation 项目；禁止写入默认 scratch 目录。每次调用前通过 `antigravity models` 检测当前可用模型，同等级 Gemini Flash 按版本从新到旧选择，再使用 Claude 回退；检测失败才使用已验证的默认顺序：
 
-- review/module：`gemini-3.7-flash-high`、`gemini-3.6-flash-high`、`claude-opus-4-6-thinking`
-- archive/test/delivery：`gemini-3.7-flash-medium`、`gemini-3.6-flash-medium`、`claude-opus-4-6-thinking`
+- review/module：`gemini-3.8-flash-high`、`claude-opus-4-6-thinking`
+- archive/test/delivery：`gemini-3.8-flash-medium`、`claude-opus-4-6-thinking`
 
 仅模型不可用、超时或进程失败时回退；审核/CR 不通过、测试或业务命令失败不得换模型绕过。
 默认超时：审核 `5m`，单模块开发和交付 `10m`；可用 handoff 顶层 `timeout` 或命令行 `--timeout` 覆盖，命令行优先。

@@ -11,13 +11,65 @@ import subprocess
 from pathlib import Path
 
 ANTIGRAVITY = "/home/rsp/.local/bin/antigravity"
-MODELS = {
-    "review": ["gemini-3.7-flash-high", "gemini-3.6-flash-high", "claude-opus-4-6-thinking"],
-    "module": ["gemini-3.7-flash-high", "gemini-3.6-flash-high", "claude-opus-4-6-thinking"],
-    "execute": ["gemini-3.7-flash-medium", "gemini-3.6-flash-medium", "claude-opus-4-6-thinking"],
+DEFAULT_MODELS = {
+    "review": ["gemini-3.8-flash-high", "claude-opus-4-6-thinking"],
+    "module": ["gemini-3.8-flash-high", "claude-opus-4-6-thinking"],
+    "execute": ["gemini-3.8-flash-medium", "claude-opus-4-6-thinking"],
 }
 DEFAULT_TIMEOUTS = {"review": "5m", "module": "10m", "execute": "10m"}
 CONVERSATION_KEYS = {"conversation_id", "conversationId", "conversationID"}
+
+
+def model_version(model: str) -> tuple[int, ...]:
+    """提取 Gemini 模型版本，供可用模型按新到旧排序。"""
+    match = re.match(r"^gemini-(\d+(?:\.\d+)*)-flash-", model)
+    return tuple(int(part) for part in match.group(1).split(".")) if match else ()
+
+
+def resolve_models(stage: str) -> tuple[list[str], dict[str, object]]:
+    """查询当前可用模型，并为指定阶段生成实际回退顺序。"""
+    try:
+        result = subprocess.run(
+            [ANTIGRAVITY, "models"], text=True, capture_output=True, check=False, timeout=30
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return DEFAULT_MODELS[stage], {
+            "error": type(error).__name__,
+            "fallback_to_defaults": True,
+        }
+    discovery: dict[str, object] = {
+        "exit_code": result.returncode,
+        "stderr": result.stderr.strip()[-2000:],
+    }
+    if result.returncode != 0:
+        discovery["fallback_to_defaults"] = True
+        return DEFAULT_MODELS[stage], discovery
+
+    available = {
+        model
+        for line in result.stdout.splitlines()
+        if line.strip()
+        for model in [line.split()[0]]
+        if re.match(r"^(?:gemini|claude|gpt)-", model)
+    }
+    effort = "high" if stage in {"review", "module"} else "medium"
+    gemini_models = sorted(
+        (
+            model
+            for model in available
+            if re.match(rf"^gemini-\d+(?:\.\d+)*-flash-{effort}$", model)
+        ),
+        key=model_version,
+        reverse=True,
+    )
+    models = gemini_models + [
+        model for model in DEFAULT_MODELS[stage] if model.startswith("claude-") and model in available
+    ]
+    discovery["available_models"] = sorted(available)
+    discovery["selected_models"] = models
+    if not models:
+        discovery["no_supported_models"] = True
+    return models, discovery
 
 
 def parse_cli_json(output: str) -> object | None:
@@ -123,7 +175,7 @@ def prompt_for(stage: str, handoff: dict[str, object], repo: Path) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stage", choices=MODELS, required=True)
+    parser.add_argument("--stage", choices=DEFAULT_MODELS, required=True)
     parser.add_argument("--handoff", type=Path, required=True)
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--timeout")
@@ -139,7 +191,8 @@ def main() -> int:
     before_files = working_fingerprints(repo)
     allowed_files = {str(path) for path in handoff.get("allowed_files", [])}
     attempts: list[dict[str, object]] = []
-    for model in MODELS[args.stage]:
+    models, model_discovery = resolve_models(args.stage)
+    for model in models:
         command = [
             ANTIGRAVITY,
             "--model", model,
@@ -180,6 +233,7 @@ def main() -> int:
                 "before": before,
                 "after": git_state(repo),
                 "attempts": attempts,
+                "model_discovery": model_discovery,
                 "touched_files": sorted(changed_during_attempt),
                 "stopped_without_fallback": True,
                 "timeout": timeout,
@@ -198,6 +252,7 @@ def main() -> int:
                 "before": before,
                 "after": after,
                 "attempts": attempts,
+                "model_discovery": model_discovery,
                 "conversation_id": conversation_id,
                 "touched_files": sorted(touched),
                 "unexpected_files": unexpected,
@@ -216,6 +271,7 @@ def main() -> int:
         "before": before,
         "after": git_state(repo),
         "attempts": attempts,
+        "model_discovery": model_discovery,
         "timeout": timeout,
     }, args.evidence_out)
     return 1
