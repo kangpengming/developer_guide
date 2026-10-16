@@ -17,7 +17,7 @@ description: 从最新 main 的任务分支开始，执行方案、飞书归档�
 - 用户单独要求某个后续阶段时，该请求即为该阶段授权，不重复确认。
 - 从已加载的本 Skill 目录定位脚本；先用 `scripts/delivery_check.py preflight` 获取 Git 证据，Java 可用 `build-plan` 探测命令，不得覆盖仓库文档。
 - 局部 Bug 只读当前改动必需的语言/reference，不加载完整协作编排；范围扩大时再升级流程。
-- Git 网络命令因代理或连通性失败时，允许仅对同一命令清除 `http_proxy`、`https_proxy`、`all_proxy` 及其大写变量，并以 `git -c http.proxy= -c https.proxy=` 绕过 Git HTTP(S) 代理重试一次；不得修改全局配置、改变远端或无限重试。仍失败则记录两次失败摘要并停止。
+- 执行 Git 网络命令前检查远端协议与当前执行环境的网络限制。`fetch`、`pull`、`push`、`ls-remote` 等远程传输必须使用具备外部网络访问能力的执行方式；若已知普通沙箱 DNS 或外网不可用，直接申请宿主机网络权限执行，不先在沙箱试错，也不将其写入无法申请网络权限的计划脚本。`Could not resolve hostname`、沙箱内 DNS 无结果而宿主机正常等证据应判定为执行环境隔离，不得通过清代理反复尝试。仅在具备网络权限的环境明确发生代理故障时，才允许对同一命令清除 `http_proxy`、`https_proxy`、`all_proxy` 及其大写变量，并以 `git -c http.proxy= -c https.proxy=` 重试一次；不得修改全局配置、改变远端或无限重试。仍失败则记录失败摘要并停止。
 
 ## 低 Token 执行
 
