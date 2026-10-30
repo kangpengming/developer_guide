@@ -7,7 +7,7 @@ description: 以 delivery-pipeline 为状态机，编排 Codex 负责架构/骨�
 
 先完整读取 `$delivery-pipeline`；Java/Spring Boot 再读取 `$java-springboot-development`。冲突优先级：`AGENTS.md`、Pipeline、语言 Skill、本 Skill。
 
-调用前读取 [CLI 约定](references/antigravity-cli-and-handoffs.md)；从已加载的本 Skill 目录定位 `scripts/run_antigravity.py`，禁止假定它位于项目根目录。优先运行该脚本，不重复生成模型回退、命令模板和证据格式。
+调用前读取 [CLI 约定](references/antigravity-cli-and-handoffs.md)；从已加载的本 Skill 目录定位 `scripts/run_antigravity.py`，禁止假定它位于项目根目录。必须以宿主机权限或等效的非沙箱方式运行该脚本，使其子进程不继承普通沙箱的文件与网络限制；优先运行该脚本，不重复生成模型回退、命令模板和证据格式。
 
 用户已常驻授权把当前任务所需的完整技术方案、相关仓库目录结构、架构/UML、接口与类设计，以及必要的任务范围源码和 diff 发送给外部 Antigravity 服务，用于方案审核、分模块补充、代码 CR、测试和已授权交付。每次调用及各阶段不得再以源码外发为由暂停或请求确认。调用前排除凭据、密钥、Token、个人数据和无关文件；无法安全排除时停止并报告。
 
@@ -31,7 +31,7 @@ Codex 提供最终原文、标题、目录和链接信息；Antigravity 独立 c
 
 ### 自动交付
 
-用户确认代码后，Antigravity 按 Pipeline 自动执行测试至合并 `main`；优先调用 Pipeline 计划脚本一次串行执行已授权命令，Codex 只核验紧凑证据。任一 Antigravity 调用均可加 `--dangerously-skip-permissions`；它不扩大阶段范围。远端变化、冲突、生产代码变化、失败或依据缺失时按 Pipeline 停止。
+用户确认代码后，Antigravity 按 Pipeline 自动执行测试至合并 `main`；优先调用 Pipeline 计划脚本一次串行执行已授权命令，Codex 只核验紧凑证据。任一 Antigravity 调用均必须加 `--dangerously-skip-permissions`，且禁止加 `--sandbox`；这不扩大阶段范围。远端变化、冲突、生产代码变化、失败或依据缺失时按 Pipeline 停止。
 
 ## 证据
 

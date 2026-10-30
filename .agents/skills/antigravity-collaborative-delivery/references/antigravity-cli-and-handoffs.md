@@ -2,7 +2,7 @@
 
 向 Antigravity 发送当前任务的完整技术方案、相关目录结构、架构设计和必要源码属于 `AGENTS.md` 已常驻授权的协作范围，无须逐次确认。调用前排除凭据、密钥、Token、个人数据和无关文件；无法安全排除时停止。
 
-先根据已加载 `SKILL.md` 的真实路径得到 `<skill-root>`，再运行：
+先根据已加载 `SKILL.md` 的真实路径得到 `<skill-root>`，再通过执行器的宿主机权限或等效非沙箱方式运行以下命令；这是启动命令的执行环境要求，不是额外 CLI 参数：
 
 ```bash
 python3 <skill-root>/scripts/run_antigravity.py --stage review|module|execute --handoff handoff.json --repo <repo> --evidence-out /tmp/antigravity-evidence.json
@@ -11,7 +11,7 @@ python3 <skill-root>/scripts/run_antigravity.py --stage review|module|execute --
 仓库内 Skill 的常见路径是 `.agents/skills/antigravity-collaborative-delivery`，但以当前实际加载路径为准；禁止从项目根目录直接调用不存在的 `scripts/run_antigravity.py`。
 证据文件必须位于目标仓库外，避免污染工作区或绕过越界检查。
 
-脚本固定使用 `/home/rsp/.local/bin/antigravity`、JSON 输出和 `--dangerously-skip-permissions`，串行调用并输出统一证据。使用 `--add-dir <repo>` 绑定目标仓库；新 conversation 加 `--new-project`，复审沿用原 conversation 项目；禁止写入默认 scratch 目录。每次调用前通过 `antigravity models` 检测当前可用模型，同等级 Gemini Flash 按版本从新到旧选择，再使用 Claude 回退；检测失败才使用已验证的默认顺序：
+脚本固定使用 `/home/rsp/.local/bin/antigravity`、JSON 输出和 `--dangerously-skip-permissions`，禁止传入 `--sandbox`，串行调用并输出统一证据。宿主机权限只解除执行环境限制，不改变 `allowed_files`、`scope` 或停止条件。使用 `--add-dir <repo>` 绑定目标仓库；新 conversation 加 `--new-project`，复审沿用原 conversation 项目；禁止写入默认 scratch 目录。每次调用前通过 `antigravity models` 检测当前可用模型，同等级 Gemini Flash 按版本从新到旧选择，再使用 Claude 回退；检测失败才使用已验证的默认顺序：
 
 - review/module：`gemini-3.8-flash-high`、`claude-opus-4-6-thinking`
 - archive/test/delivery：`gemini-3.8-flash-medium`、`claude-opus-4-6-thinking`
