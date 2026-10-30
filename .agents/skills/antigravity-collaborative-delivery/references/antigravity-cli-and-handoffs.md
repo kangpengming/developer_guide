@@ -39,6 +39,6 @@ python3 <skill-root>/scripts/run_antigravity.py --stage review|module|execute --
 - archive：包含最终方案全文、精确标题、用户身份、folder token、链接五列；返回 URL、身份、目录、完整回读和命令结果。
 - module：包含单模块职责/契约、骨架、允许文件、验收；禁止处理下一模块或交付。
 - test：包含对应模块与正常/边界/异常场景；复用生产流程。需改生产代码时停止并报告。
-- delivery：包含代码查看阶段确认的精确命令、分支/HEAD/远端、验证和停止条件；禁止扩大暂存、改变提交信息、rebase、force push 或猜部署。
+- delivery：包含代码查看阶段确认的精确命令、分支/HEAD/远端、验证和停止条件；禁止扩大暂存、改变提交信息、rebase、force push 或猜部署。任何可能删除数据库数据的命令必须列为执行前停止条件，未经用户明确审核不得交给 Antigravity 执行。
 
 脚本比较调用前后文件指纹；改动 `allowed_files` 外路径时返回失败但不擅自回滚。它不替代 Pipeline 授权或停止条件，外部写入后仍由 Codex 核对实际状态。
